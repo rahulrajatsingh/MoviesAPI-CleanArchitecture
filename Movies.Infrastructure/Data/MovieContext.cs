@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Movies.Core.Entities;
+using Movies.Authorization;
 
 namespace Movies.Infrastructure.Data
 {
@@ -23,6 +24,7 @@ namespace Movies.Infrastructure.Data
             }
         }
 
-        public DbSet<Movie> Movies { get; set; }
+        public virtual DbSet<Movie> Movies { get; set; }
+        public virtual DbSet<Tenant> Tenants { get; set; }
     }
 }

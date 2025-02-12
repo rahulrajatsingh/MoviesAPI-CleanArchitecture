@@ -36,12 +36,12 @@ namespace Movies.Infrastructure.Repositories.Base
 
         public async Task<List<T>> GetAllAsync()
         {
-            return await MovieContext.Set<T>().ToListAsync();
+            return await MovieContext.Set<T>().AsNoTracking().ToListAsync();
         }
 
         public async Task<T> GetByIdAsync(int id)
         {
-            return await MovieContext.Set<T>().FindAsync(id);
+            return await MovieContext.Set<T>().FirstOrDefaultAsync(e => EF.Property<int>(e, "ID") == id);
         }
 
         public async Task<T> UpdateAsync(T entity)

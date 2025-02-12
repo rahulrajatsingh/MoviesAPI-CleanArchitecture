@@ -43,6 +43,7 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Cr
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddTransient(typeof(IMovieRepository), typeof(MovieRepository));
+builder.Services.AddTransient(typeof(ITenantRepository), typeof(TenantRepository));
 
 
 var app = builder.Build();
