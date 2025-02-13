@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Movies.Application.Commands;
 using Movies.Application.Queries;
@@ -10,6 +11,8 @@ namespace Movies.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    // [JwtAuthFilter] only needed of the scheme is not added in the middleware
+    [Authorize] // this will work if the scheme is added in middleware
     public class MoviesController : ControllerBase
     {
         private readonly IMediator _mediator;
