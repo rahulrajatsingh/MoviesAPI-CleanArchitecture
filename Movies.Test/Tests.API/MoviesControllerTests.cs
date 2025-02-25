@@ -4,7 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Movies.API.Controllers;
 using Movies.Application.Commands;
-using Movies.Application.Queries;
+using Movies.Application.Commands.CreateMovie;
+using Movies.Application.Commands.DeleteMovie;
+using Movies.Application.Commands.UpdateMovie;
+using Movies.Application.Queries.GetAllMovies;
+using Movies.Application.Queries.GetMovieById;
 using Movies.Application.Responses;
 
 namespace Movies.Test.Tests.API

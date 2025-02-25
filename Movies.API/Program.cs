@@ -1,119 +1,140 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using MediatR;
-using AutoMapper;
-using System.Reflection;
-using Movies.Infrastructure.Data;
-using Movies.Core.Repositories.Base;
-using Movies.Infrastructure.Repositories.Base;
-using Movies.Infrastructure.Repositories;
-using Movies.Core.Repositories;
-using Movies.Application.Handlers.CommandHandlers;
-using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System;
+using System.IO;
 using System.Text;
+using Movies.Infrastructure.Extensions;
+using Movies.Application.Extensions;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
-var builder = WebApplication.CreateBuilder(args);
-
-
-// Load configuration from appsettings.json and environment variables
-builder.Configuration
-       .SetBasePath(Directory.GetCurrentDirectory())
-       .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-       .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
-       .AddEnvironmentVariables()
-       .AddCommandLine(args);
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+public class Program
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Movies API", Version = "v1" });
-
-    // Add support for JWT Bearer Authentication
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    public static void Main(string[] args)
     {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter 'Bearer' [space] and then your valid token in the text input below. Example: 'Bearer eyJhbGciOiJIUzI1...'"
-    });
+        var builder = WebApplication.CreateBuilder(args);
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        ConfigureConfiguration(builder);
+
+        ConfigureServices(builder.Services, builder.Configuration);
+
+        var app = builder.Build();
+
+        ConfigureMiddleware(app);
+
+        app.Run();
+    }
+
+    /// <summary>
+    /// Configures application settings from appsettings.json, environment variables, and command-line arguments.
+    /// </summary>
+    private static void ConfigureConfiguration(WebApplicationBuilder builder)
     {
+        builder.Configuration
+               .SetBasePath(Directory.GetCurrentDirectory())
+               .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+               .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+               .AddEnvironmentVariables()
+               .AddCommandLine(Environment.GetCommandLineArgs());
+    }
+
+    /// <summary>
+    /// Configures all services including authentication, infrastructure, and application services.
+    /// </summary>
+    private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddControllers();
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen(ConfigureSwagger);
+
+        services.AddInfrastructureServices(configuration);
+        services.AddApplicationServices();
+
+        ConfigureAuthentication(services, configuration);
+
+        services.AddAuthorization();
+    }
+
+    /// <summary>
+    /// Configures middleware components like Swagger, HTTPS redirection, authentication, and authorization.
+    /// </summary>
+    private static void ConfigureMiddleware(WebApplication app)
+    {
+        if (app.Environment.IsDevelopment())
         {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
+            app.UseSwagger();
+            app.UseSwaggerUI();
         }
-    });
-});
 
+        app.UseHttpsRedirection();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.MapControllers();
+    }
 
-// Configure Entity Framework Core with SQL Server
-builder.Services.AddDbContext<MovieContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("MoviesDb")));
-
-// Explicitly specify AutoMapper's method to resolve ambiguity
-builder.Services.AddAutoMapper(cfg => cfg.AddMaps(Assembly.GetExecutingAssembly()));
-
-// Register MediatR
-// Register MediatR and scan the Movies.Application assembly for handlers
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateMovieCommandHandler>());
-
-
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-builder.Services.AddTransient(typeof(IMovieRepository), typeof(MovieRepository));
-builder.Services.AddTransient(typeof(ITenantRepository), typeof(TenantRepository));
-
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]); // Ensure this is at least 32 characters long
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    /// <summary>
+    /// Configures Swagger for API documentation.
+    /// </summary>
+    private static void ConfigureSwagger(SwaggerGenOptions c)
     {
-        options.RequireHttpsMetadata = false; // Set to true in production
-        options.SaveToken = true;
-        options.TokenValidationParameters = new TokenValidationParameters
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Movies API", Version = "v1" });
+
+        // Add support for JWT Bearer Authentication
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = true,
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidateAudience = true,
-            ValidAudience = jwtSettings["Audience"],
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero // Prevents token expiration delay issues
-        };
-    });
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "Bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Enter 'Bearer' [space] and then your valid token in the text input below. Example: 'Bearer eyJhbGciOiJIUzI1...'"
+        });
 
-builder.Services.AddAuthorization();
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                new string[] {}
+            }
+        });
+    }
 
-var app = builder.Build();
+    /// <summary>
+    /// Configures JWT authentication.
+    /// </summary>
+    private static void ConfigureAuthentication(IServiceCollection services, IConfiguration configuration)
+    {
+        var jwtSettings = configuration.GetSection("Jwt");
+        var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]); // Ensure this is at least 32 characters long
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false; // Set to true in production
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = jwtSettings["Audience"],
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero // Prevents token expiration delay issues
+                };
+            });
+    }
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();

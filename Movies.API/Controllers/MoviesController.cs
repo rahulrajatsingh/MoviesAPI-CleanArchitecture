@@ -1,8 +1,13 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Movies.Application.Commands;
+using Movies.Application.Commands.CreateMovie;
+using Movies.Application.Commands.DeleteMovie;
+using Movies.Application.Commands.UpdateMovie;
 using Movies.Application.Queries;
+using Movies.Application.Queries.GetAllMovies;
+using Movies.Application.Queries.GetMovieByDirectorName;
+using Movies.Application.Queries.GetMovieById;
 using Movies.Application.Responses;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860

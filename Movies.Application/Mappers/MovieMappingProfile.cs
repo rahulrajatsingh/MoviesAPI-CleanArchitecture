@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
-using Movies.Application.Commands;
+using Movies.Application.Commands.CreateMovie;
+using Movies.Application.Commands.DeleteMovie;
+using Movies.Application.Commands.UpdateMovie;
 using Movies.Application.Responses;
 using Movies.Core.Entities;
 using System;
