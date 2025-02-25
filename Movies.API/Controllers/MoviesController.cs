@@ -91,7 +91,7 @@ namespace Movies.API.Controllers
             var command = new DeleteMovieCommand(id);  // Create the delete command with movie ID
             var result = await _mediator.Send(command);  // Send the delete command
 
-            if (!result)
+            if (!result.IsSuccess || !result.Value)
             {
                 return NotFound();  // Return 404 if movie not found
             }

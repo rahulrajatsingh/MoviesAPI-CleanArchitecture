@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.Extensions.DependencyInjection;
 using Movies.Application.Commands.CreateMovie;
 using System;
 using System.Collections.Generic;
@@ -15,6 +17,11 @@ public static class ApplicationServiceExtensions
     {
         services.AddAutoMapper(cfg => cfg.AddMaps(Assembly.GetExecutingAssembly()));
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateMovieCommandHandler>());
+
+        services.AddValidatorsFromAssemblyContaining<CreateMovieCommandValidator>();
+
+        services.AddFluentValidationAutoValidation();
+        services.AddFluentValidationClientsideAdapters();
 
         return services;
     }

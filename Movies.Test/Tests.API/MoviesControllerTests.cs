@@ -122,8 +122,9 @@ namespace Movies.Test.Tests.API
         public async Task DeleteMovie_ShouldReturnNoContent_WhenMovieIsDeleted()
         {
             // Arrange
-            _mediatorMock.Setup(m => m.Send(It.IsAny<DeleteMovieCommand>(), default))
-                         .ReturnsAsync(true);
+            _mediatorMock.Setup(m => m.Send(It.IsAny<DeleteMovieCommand>(), It.IsAny<CancellationToken>()))
+                            .ReturnsAsync(Result<bool>.Success(true)); 
+
 
             // Act
             var result = await _controller.DeleteMovie(1);
@@ -137,7 +138,7 @@ namespace Movies.Test.Tests.API
         {
             // Arrange
             _mediatorMock.Setup(m => m.Send(It.IsAny<DeleteMovieCommand>(), default))
-                         .ReturnsAsync(false);
+             .ReturnsAsync(Result<bool>.Success(false)); // 
 
             // Act
             var result = await _controller.DeleteMovie(99);
