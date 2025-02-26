@@ -21,11 +21,13 @@ namespace Movies.API.Controllers
     public class MoviesController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly Movies.Core.Logging.ILogger _logger;
 
         // Constructor to inject Mediator (which is provided by the dependency injection container)
-        public MoviesController(IMediator mediator)
+        public MoviesController(IMediator mediator, Core.Logging.ILogger logger)
         {
             _mediator = mediator;
+            _logger = logger;
         }
 
         // GET api/movies/{directorName}
@@ -41,6 +43,7 @@ namespace Movies.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MovieResponse>>> GetAllMovies()
         {
+            _logger.LogInfo("This is an info log - calling GetAllMovies()");
             var query = new GetAllMoviesQuery(); // Query to get all movies
             var result = await _mediator.Send(query);
             return Ok(result);  // Return all movies in response

@@ -12,6 +12,7 @@ using System.Text;
 using Movies.Infrastructure.Extensions;
 using Movies.Application.Extensions;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Serilog;
 
 public class Program
 {
@@ -21,9 +22,22 @@ public class Program
 
         ConfigureConfiguration(builder);
 
+        // Configure Serilog
+        Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+
         ConfigureServices(builder.Services, builder.Configuration);
 
+
+        
+
+        // Use Serilog as the logging provider
+        builder.Host.UseSerilog();
+
         var app = builder.Build();
+
+        app.UseSerilogRequestLogging();
 
         ConfigureMiddleware(app);
 

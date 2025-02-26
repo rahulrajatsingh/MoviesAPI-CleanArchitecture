@@ -11,6 +11,8 @@ using Movies.Infrastructure.Repositories;
 using Movies.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Movies.Core.Logging;
+using Movies.Infrastructure.Logging;
 
 namespace Movies.Infrastructure.Extensions;
 public static class InfrastructureServiceExtensions
@@ -24,6 +26,9 @@ public static class InfrastructureServiceExtensions
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddTransient<IMovieRepository, MovieRepository>();
         services.AddTransient<ITenantRepository, TenantRepository>();
+
+        // Register ILogger as a singleton service
+        services.AddSingleton<ILogger, Logger>();
 
         return services;
     }

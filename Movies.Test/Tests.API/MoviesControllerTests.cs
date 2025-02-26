@@ -10,6 +10,7 @@ using Movies.Application.Commands.UpdateMovie;
 using Movies.Application.Queries.GetAllMovies;
 using Movies.Application.Queries.GetMovieById;
 using Movies.Application.Responses;
+using Movies.Core.Logging;
 
 namespace Movies.Test.Tests.API
 {
@@ -17,12 +18,13 @@ namespace Movies.Test.Tests.API
     {
         private Mock<IMediator> _mediatorMock;
         private MoviesController _controller;
+        private Mock<ILogger> _logMock;
 
         [SetUp]
         public void Setup()
         {
             _mediatorMock = new Mock<IMediator>();
-            _controller = new MoviesController(_mediatorMock.Object);
+            _controller = new MoviesController(_mediatorMock.Object, _logMock.Object);
         }
 
         [Test]
