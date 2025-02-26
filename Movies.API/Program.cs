@@ -13,6 +13,7 @@ using Movies.Infrastructure.Extensions;
 using Movies.Application.Extensions;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Serilog;
+using Movies.API.Middleware;
 
 public class Program
 {
@@ -29,15 +30,13 @@ public class Program
 
         ConfigureServices(builder.Services, builder.Configuration);
 
-
-        
-
         // Use Serilog as the logging provider
         builder.Host.UseSerilog();
 
         var app = builder.Build();
 
         app.UseSerilogRequestLogging();
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         ConfigureMiddleware(app);
 
