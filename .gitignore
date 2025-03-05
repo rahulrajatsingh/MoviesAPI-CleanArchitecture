@@ -475,3 +475,5 @@
 /Movies.Test/obj/Movies.Test.csproj.nuget.g.targets
 /Movies.Test/obj/project.assets.json
 /Movies.Test/obj/project.nuget.cache
+obj
+bin

@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DTOs\**" />
     <Compile Remove="Queries\**" />
+    <EmbeddedResource Remove="DTOs\**" />
     <EmbeddedResource Remove="Queries\**" />
+    <None Remove="DTOs\**" />
     <None Remove="Queries\**" />
   </ItemGroup>
 
@@ -24,10 +27,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Movies.Core\Movies.Core.csproj" />
     <ProjectReference Include="..\Movies.Infrastructure\Movies.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="DTOs\" />
   </ItemGroup>
 
 </Project>
