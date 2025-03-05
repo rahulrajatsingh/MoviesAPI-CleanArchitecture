@@ -1,30 +1,29 @@
 using FluentAssertions;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Movies.API.Controllers;
-using Movies.Application.Commands;
-using Movies.Application.Commands.CreateMovie;
-using Movies.Application.Commands.DeleteMovie;
-using Movies.Application.Commands.UpdateMovie;
-using Movies.Application.Queries.GetAllMovies;
-using Movies.Application.Queries.GetMovieById;
-using Movies.Application.Responses;
+using Movies.Application.Models.Request;
+using Movies.Application.Models.Response;
+using Movies.Application.Services;
 using Movies.Core.Logging;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Movies.Test.Tests.API
 {
     public class MoviesControllerTests
     {
-        private Mock<IMediator> _mediatorMock;
-        private MoviesController _controller;
+        private Mock<IMovieService> _movieServiceMock;
         private Mock<ILogger> _logMock;
+        private MoviesController _controller;
 
         [SetUp]
         public void Setup()
         {
-            _mediatorMock = new Mock<IMediator>();
-            _controller = new MoviesController(_mediatorMock.Object, _logMock.Object);
+            _movieServiceMock = new Mock<IMovieService>();
+            _logMock = new Mock<ILogger>();
+            _controller = new MoviesController(_movieServiceMock.Object, _logMock.Object);
         }
 
         [Test]
@@ -33,12 +32,12 @@ namespace Movies.Test.Tests.API
             // Arrange
             var movies = new List<MovieResponse>
             {
-                new MovieResponse { Id = 1, MovieName = "Inception", DirectorName = "Christopher Nolan" },
-                new MovieResponse { Id = 2, MovieName = "Interstellar", DirectorName = "Christopher Nolan" }
+                new MovieResponse { ID = 1, MovieName = "Inception", DirectorName = "Christopher Nolan" },
+                new MovieResponse { ID = 2, MovieName = "Interstellar", DirectorName = "Christopher Nolan" }
             };
 
-            _mediatorMock.Setup(m => m.Send(It.IsAny<GetAllMoviesQuery>(), default))
-                         .ReturnsAsync(movies);
+            _movieServiceMock.Setup(service => service.GetAllMoviesAsync())
+                             .ReturnsAsync(movies);
 
             // Act
             var result = await _controller.GetAllMovies();
@@ -53,10 +52,10 @@ namespace Movies.Test.Tests.API
         public async Task GetMovieById_ShouldReturnMovie_WhenFound()
         {
             // Arrange
-            var movie = new MovieResponse { Id = 1, MovieName = "Inception", DirectorName = "Christopher Nolan" };
+            var movie = new MovieResponse { ID = 1, MovieName = "Inception", DirectorName = "Christopher Nolan" };
 
-            _mediatorMock.Setup(m => m.Send(It.Is<GetMovieByIdQuery>(q => q.Id == 1), default))
-                         .ReturnsAsync(movie);
+            _movieServiceMock.Setup(service => service.GetMovieByIdAsync(1))
+                             .ReturnsAsync(movie);
 
             // Act
             var result = await _controller.GetMovieById(1);
@@ -67,13 +66,12 @@ namespace Movies.Test.Tests.API
             okResult.Value.Should().BeEquivalentTo(movie);
         }
 
-
         [Test]
         public async Task GetMovieById_ShouldReturnNotFound_WhenMovieDoesNotExist()
         {
             // Arrange
-            _mediatorMock.Setup(m => m.Send(It.IsAny<GetMovieByIdQuery>(), default))
-                         .ReturnsAsync((MovieResponse)null);
+            _movieServiceMock.Setup(service => service.GetMovieByIdAsync(99))
+                             .ReturnsAsync((MovieResponse)null);
 
             // Act
             var result = await _controller.GetMovieById(99);
@@ -86,14 +84,14 @@ namespace Movies.Test.Tests.API
         public async Task CreateMovie_ShouldReturnCreatedResponse_WhenMovieIsCreated()
         {
             // Arrange
-            var command = new CreateMovieCommand { MovieName = "Inception", DirectorName = "Christopher Nolan" };
-            var movieResponse = new MovieResponse { Id = 1, MovieName = "Inception", DirectorName = "Christopher Nolan" };
+            var request = new MovieRequest { MovieName = "Inception", DirectorName = "Christopher Nolan" };
+            var movieResponse = new MovieResponse { ID = 1, MovieName = "Inception", DirectorName = "Christopher Nolan" };
 
-            _mediatorMock.Setup(m => m.Send(command, default))
-                         .ReturnsAsync(movieResponse);
+            _movieServiceMock.Setup(service => service.AddMovieAsync(request))
+                             .ReturnsAsync(movieResponse);
 
             // Act
-            var result = await _controller.CreateMovie(command);
+            var result = await _controller.CreateMovie(request);
 
             // Assert
             result.Result.Should().BeOfType<CreatedAtActionResult>();
@@ -105,14 +103,14 @@ namespace Movies.Test.Tests.API
         public async Task UpdateMovie_ShouldReturnUpdatedMovie_WhenMovieExists()
         {
             // Arrange
-            var command = new UpdateMovieCommand { Id = 1, MovieName = "Updated Title", DirectorName = "Updated Director" };
-            var updatedMovie = new MovieResponse { Id = 1, MovieName = "Updated Title", DirectorName = "Updated DirectorName" };
+            var request = new MovieRequest { MovieName = "Updated Title", DirectorName = "Updated Director" };
+            var updatedMovie = new MovieResponse { ID = 1, MovieName = "Updated Title", DirectorName = "Updated Director" };
 
-            _mediatorMock.Setup(m => m.Send(command, default))
-                         .ReturnsAsync(updatedMovie);
+            _movieServiceMock.Setup(service => service.UpdateMovieAsync(1, request))
+                             .ReturnsAsync(updatedMovie);
 
             // Act
-            var result = await _controller.UpdateMovie(1, command);
+            var result = await _controller.UpdateMovie(1, request);
 
             // Assert
             result.Result.Should().BeOfType<OkObjectResult>();
@@ -121,12 +119,27 @@ namespace Movies.Test.Tests.API
         }
 
         [Test]
+        public async Task UpdateMovie_ShouldReturnNotFound_WhenMovieDoesNotExist()
+        {
+            // Arrange
+            var request = new MovieRequest { MovieName = "Updated Title", DirectorName = "Updated Director" };
+
+            _movieServiceMock.Setup(service => service.UpdateMovieAsync(99, request))
+                             .ReturnsAsync((MovieResponse)null);
+
+            // Act
+            var result = await _controller.UpdateMovie(99, request);
+
+            // Assert
+            result.Result.Should().BeOfType<NotFoundResult>();
+        }
+
+        [Test]
         public async Task DeleteMovie_ShouldReturnNoContent_WhenMovieIsDeleted()
         {
             // Arrange
-            _mediatorMock.Setup(m => m.Send(It.IsAny<DeleteMovieCommand>(), It.IsAny<CancellationToken>()))
-                            .ReturnsAsync(Result<bool>.Success(true)); 
-
+            _movieServiceMock.Setup(service => service.DeleteMovieAsync(1))
+                             .ReturnsAsync(true);
 
             // Act
             var result = await _controller.DeleteMovie(1);
@@ -139,8 +152,8 @@ namespace Movies.Test.Tests.API
         public async Task DeleteMovie_ShouldReturnNotFound_WhenMovieDoesNotExist()
         {
             // Arrange
-            _mediatorMock.Setup(m => m.Send(It.IsAny<DeleteMovieCommand>(), default))
-             .ReturnsAsync(Result<bool>.Success(false)); // 
+            _movieServiceMock.Setup(service => service.DeleteMovieAsync(99))
+                             .ReturnsAsync(false);
 
             // Act
             var result = await _controller.DeleteMovie(99);

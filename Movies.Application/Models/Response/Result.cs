@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Movies.Application.Responses;
+namespace Movies.Application.Models.Response;
 
 public class Result<T>
 {

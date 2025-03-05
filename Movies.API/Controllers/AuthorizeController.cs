@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Movies.Application.DTOs;
+using Movies.Application.Models.Request;
 using Movies.Authorization;
 
 [ApiController]
@@ -23,7 +23,7 @@ public class AuthorizeController : ControllerBase
     }
 
     [HttpPost("validate")]
-    public async Task<IActionResult> ValidateClient([FromBody] ClientCredentialsDto credentials)
+    public async Task<IActionResult> ValidateClient([FromBody] ClientCredentials credentials)
     {
         if (credentials == null || string.IsNullOrWhiteSpace(credentials.ClientId) || string.IsNullOrWhiteSpace(credentials.ClientSecret))
         {

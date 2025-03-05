@@ -1,106 +1,72 @@
-﻿using MediatR;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Movies.Application.Commands.CreateMovie;
-using Movies.Application.Commands.DeleteMovie;
-using Movies.Application.Commands.UpdateMovie;
-using Movies.Application.Queries;
-using Movies.Application.Queries.GetAllMovies;
-using Movies.Application.Queries.GetMovieByDirectorName;
-using Movies.Application.Queries.GetMovieById;
-using Movies.Application.Responses;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+using Movies.Application.Models.Request;
+using Movies.Application.Models.Response;
+using Movies.Application.Services;
+using Movies.Core.Logging;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Movies.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    // [JwtAuthFilter] only needed of the scheme is not added in the middleware
-    [Authorize] // this will work if the scheme is added in middleware
+  //  [Authorize]
     public class MoviesController : ControllerBase
     {
-        private readonly IMediator _mediator;
-        private readonly Movies.Core.Logging.ILogger _logger;
+        private readonly IMovieService _movieService;
+        private readonly Core.Logging.ILogger _logger;
 
-        // Constructor to inject Mediator (which is provided by the dependency injection container)
-        public MoviesController(IMediator mediator, Core.Logging.ILogger logger)
+        public MoviesController(IMovieService movieService, Core.Logging.ILogger logger)
         {
-            _mediator = mediator;
+            _movieService = movieService;
             _logger = logger;
         }
 
-        // GET api/movies/{directorName}
         [HttpGet("director/{directorName}")]
         public async Task<ActionResult<IEnumerable<MovieResponse>>> GetMoviesByDirectorName(string directorName)
         {
-            var query = new GetMoviesByDirectorNameQuery(directorName);  // Passing director name to the query
-            var result = await _mediator.Send(query);
-            return Ok(result);  // Return the list of movies for the director
+            var movies = await _movieService.GetMoviesByDirectorAsync(directorName);
+            return Ok(movies);
         }
 
-        // GET api/movies
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MovieResponse>>> GetAllMovies()
         {
-            _logger.LogInfo("This is an info log - calling GetAllMovies()");
-            var query = new GetAllMoviesQuery(); // Query to get all movies
-            var result = await _mediator.Send(query);
-            return Ok(result);  // Return all movies in response
+            _logger.LogInfo("Fetching all movies...");
+            var movies = await _movieService.GetAllMoviesAsync();
+            return Ok(movies);
         }
 
-        // GET api/movies/5
         [HttpGet("{id}")]
         public async Task<ActionResult<MovieResponse>> GetMovieById(int id)
         {
-            var query = new GetMovieByIdQuery(id);  // Query to fetch a movie by its ID
-            var result = await _mediator.Send(query);
-
-            if (result == null)
-            {
-                return NotFound();  // Return 404 if movie not found
-            }
-
-            return Ok(result);  // Return the movie response
+            var movie = await _movieService.GetMovieByIdAsync(id);
+            if (movie == null) return NotFound();
+            return Ok(movie);
         }
 
-        // POST api/movies
         [HttpPost]
-        public async Task<ActionResult<MovieResponse>> CreateMovie([FromBody] CreateMovieCommand command)
+        public async Task<ActionResult<MovieResponse>> CreateMovie([FromBody] MovieRequest movieRequest)
         {
-            var movie = await _mediator.Send(command);  // Handle the create command via Mediator
-            return CreatedAtAction(nameof(GetMovieById), new { id = movie.Id }, movie);  // Return 201 with location header
+            var movieResponse = await _movieService.AddMovieAsync(movieRequest);
+            return CreatedAtAction(nameof(GetMovieById), new { id = movieResponse.ID }, movieResponse);
         }
 
-        // PUT api/movies/5
         [HttpPut("{id}")]
-        public async Task<ActionResult<MovieResponse>> UpdateMovie(int id, [FromBody] UpdateMovieCommand command)
+        public async Task<ActionResult<MovieResponse>> UpdateMovie(int id, [FromBody] MovieRequest movieRequest)
         {
-            command.Id = id;  // Set the ID of the movie in the command
-            var movie = await _mediator.Send(command);  // Send the update command
-
-            if (movie == null)
-            {
-                return NotFound();  // Return 404 if movie not found
-            }
-
-            return Ok(movie);  // Return updated movie
+            var updatedMovie = await _movieService.UpdateMovieAsync(id, movieRequest);
+            if (updatedMovie == null) return NotFound();
+            return Ok(updatedMovie);
         }
 
-        // DELETE api/movies/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMovie(int id)
         {
-            var command = new DeleteMovieCommand(id);  // Create the delete command with movie ID
-            var result = await _mediator.Send(command);  // Send the delete command
-
-            if (!result.IsSuccess || !result.Value)
-            {
-                return NotFound();  // Return 404 if movie not found
-            }
-
-            return NoContent();  // Return 204 if successfully deleted
+            var deleted = await _movieService.DeleteMovieAsync(id);
+            if (!deleted) return NotFound();
+            return NoContent();
         }
     }
-
 }
